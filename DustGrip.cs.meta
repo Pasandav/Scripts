@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7545fc0fd0f89433785a3696648987d2
+timeCreated: 1463599224
+licenseType: Free
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - dustGrip: {fileID: 130504, guid: 11b8f6a278d7f48d9af714bd58136e77, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

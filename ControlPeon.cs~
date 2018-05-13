@@ -1,0 +1,280 @@
+﻿using UnityEngine;
+using System.Collections;
+
+
+
+public class ControlPeon : MonoBehaviour {
+	
+
+
+	//	Rigidbody2D rigidoPeon;
+	Collider2D cuerpo;
+	CircleCollider2D cabeza;
+
+
+	AudioSource sonidosPeon;
+
+	Animator thisAnimator;
+	Rigidbody2D thisRigid;
+	SpriteRenderer thisSprite;
+
+
+	RaycastHit2D player;
+
+
+
+	private Vector3 ojos;
+
+
+	public AudioClip golpeCabeza;
+
+	public  GameObject [] Items;
+
+	public int maxItems = 0;
+
+	private bool miraDerecha;
+	public float speed;
+	public float maxSpeed;
+	private float direction;
+
+	private bool encontrado;
+
+	public Transform target;
+	public LayerMask capaPlayer;
+
+	private int dañoProvodado = 10;
+	public bool inmune;
+
+	// Use this for initialization
+	int hashEncontrado = Animator.StringToHash ("Encontrado");
+	int hashPerdido = Animator.StringToHash ("Perdido");
+	int hashVelocidad = Animator.StringToHash ("Velocidad");
+
+
+	void Start () {
+		//rigidoPeon = GetComponent <Rigidbody2D> ();
+		cuerpo = GetComponent <Collider2D> ();
+		cabeza = GetComponent <CircleCollider2D>();
+
+
+		sonidosPeon = GetComponent <AudioSource>();
+		thisAnimator = GetComponent <Animator>();
+		thisRigid = GetComponent <Rigidbody2D>();
+		thisSprite = GetComponent <SpriteRenderer>();
+		target = GameObject.FindGameObjectWithTag ("Player").GetComponentInParent <Transform>();
+
+
+
+		//ojos = this.transform.FindChild ("Mirada");
+
+		direction = -1f;
+		miraDerecha = false;
+		//lado = -1;
+		speed = 0f;
+		maxSpeed = 2f;
+		encontrado = false;
+}
+
+
+	void Update ()
+	{
+		
+		ojos = thisSprite.bounds.center;
+		ojos.y += 0.45f;
+
+
+
+
+		//Animator anim = thisAnimator.GetCurrentAnimatorClipInfo (0);
+
+
+		if (player && player.transform.GetComponentInParent < PlayerControl>().inmortal == false)
+		{
+			
+			//thisAnimator.SetBool (hashEncontrado, player);
+			//thisAnimator.SetBool (hashPerdido, false);
+
+
+			if (player.distance < 5f)
+			{
+				encontrado = player;
+
+			}
+			else
+			{
+
+			}
+		
+		}
+		else 
+		{
+
+			//velocidad = 0;
+			//thisAnimator.SetBool (hashEncontrado, encontrado);
+
+		}
+
+		if (speed > 0){
+			//this.transform.Translate ((lado * 3f) * Time.deltaTime,  0);;
+		}
+
+		//thisAnimator.SetBool(hashPerdido,true);
+
+	}
+
+	void FixedUpdate () 
+	{
+
+
+		player = Physics2D.Raycast (ojos, Vector2.right * direction, 6f , capaPlayer);
+		Debug.DrawRay (ojos, Vector2.right * direction * 6f , Color.yellow);
+		Debug.DrawRay (ojos, Vector2.right * direction * 5f, Color.red);
+
+
+		if (player.collider != null && encontrado)
+		{
+			Vector2 targeto = new Vector2 (player.point.x,player.point.y);
+			corre (330f);
+		
+		
+		Debug.DrawRay (ojos, targeto * 6f , Color.yellow);
+		Debug.DrawRay (ojos, targeto * 5f, Color.red);
+		//Debug.Log("Estas a " + distancia.distance + "de mi");
+		}
+	
+		thisAnimator.SetFloat(hashVelocidad, Mathf.Abs( thisRigid.velocity.x));
+		thisAnimator.SetFloat("Distancia",Mathf.Abs (player.distance));
+		thisAnimator.SetFloat("Lado",direction);
+		thisAnimator.SetBool (hashEncontrado, player );
+	}
+
+
+	void OnCollisionEnter2D (Collision2D colision)
+	{
+		if (colision.gameObject.tag == "Obstaculos" ||
+			colision.gameObject.tag == "Movil" || 
+			//colision.gameObject.tag == "Player" || 
+			colision.gameObject.tag == "Proteccion")
+			//colision.gameObject.tag == "Player01")
+		{
+			gira();
+		}
+
+		if (colision.gameObject.GetComponent<PlayerControl>() != null)
+			{
+			inmune = colision.gameObject.GetComponent<PlayerControl>().inmortal;
+			if (inmune)
+			{
+				speed = 0;
+				StartCoroutine (Reir());
+			}
+		}
+
+	}
+
+	void OnCollisionExit2D (Collision2D colision)
+	{
+		if (colision.gameObject.tag == "Obstaculos" || 
+			colision.gameObject.tag == "Movil" || 
+			colision.gameObject.tag == "Player" || 
+			colision.gameObject.tag == "Proteccion" ||
+			colision.gameObject.tag == "Player01")
+		{
+			if (colision.gameObject.GetComponent<PlayerControl>() != null)
+			{
+				inmune = colision.gameObject.GetComponent<PlayerControl>().inmortal;
+
+			}
+		}
+	}
+
+	void OnTriggerEnter2D (Collider2D otro)
+	{
+
+		if (otro.gameObject.name == "Destructor" )
+		{
+			Destroy (this.gameObject);
+			//StartCoroutine  (destruye ());
+		}
+
+		if (otro.gameObject.name == "FinDeNivel"){
+			gira ();
+		}
+	}
+
+	void corre (float speed)
+	{
+		if (Mathf.Abs (thisRigid.velocity.x) <= maxSpeed)
+		{
+			thisRigid.AddForce (Vector2.right * direction * speed, ForceMode2D.Force);
+		}else{
+			Debug.Log("Igualando velocidad");
+			thisRigid.velocity = new Vector2 (direction *  maxSpeed , 0f);
+		}
+
+	}
+
+	void gira ()
+	{
+
+		direction *= -1f;
+
+		//ojos *= lado;
+
+		miraDerecha = !miraDerecha;
+		thisSprite.flipX = !thisSprite.flipX;
+
+		//speed *= -1f;
+	}
+
+	public void muere(){
+		
+
+		if (this.gameObject != null){
+			thisAnimator.SetBool ("Muere", true);
+
+			cuerpo.enabled = false;
+			cabeza.enabled = false;
+			thisRigid.AddForce (Vector2.up * 5f,ForceMode2D.Impulse);
+			//rigidbody.AddForce ((- rigidbody.velocity) *5, ForceMode2D.Impulse);
+
+			if (Items.Length > 0 && maxItems == 0){
+
+
+				Instantiate (Items [Random.Range (0, Items.Length )], this.transform.position, this.transform.rotation);
+				//maxItems += 1;
+			}
+
+
+			sonidosPeon.PlayOneShot (golpeCabeza);
+
+
+			StartCoroutine (destruye ());
+
+
+		}
+
+	}
+
+	private IEnumerator Reir ()
+	{
+		
+		thisAnimator.SetBool ("Reir", true);
+		yield return new WaitForSeconds (1.5f);
+		thisAnimator.SetBool ("Reir", false);
+		gira ();
+
+	}
+
+	private IEnumerator destruye (){
+		yield return new WaitForSeconds (1);
+		thisRigid.simulated = false;
+
+		yield return new WaitForSeconds (1);
+
+		Destroy (this.gameObject);
+	}
+
+
+}
+

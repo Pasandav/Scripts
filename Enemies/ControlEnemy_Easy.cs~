@@ -1,0 +1,330 @@
+﻿using UnityEngine;
+using System.Collections;
+
+
+
+public class ControlEnemy_Easy : MonoBehaviour {
+	
+
+
+	//	Rigidbody2D rigidoPeon;
+	private Collider2D cuerpo;
+	private CircleCollider2D cabeza;
+	private Animator thisAnimator;
+	private Rigidbody2D thisRigid;
+	private SpriteRenderer thisSprite;
+	private Vector3 ojos;
+
+
+	private AudioSource sonidosPeon;
+
+
+
+
+	private RaycastHit2D whatDetect;
+	public LayerMask detectLayer;
+
+
+
+
+
+	public AudioClip golpeCabeza;
+
+	public  GameObject [] Items;
+
+	public int maxItems = 0;
+
+	private bool miraDerecha;
+	public float speed;
+	public float maxSpeed;
+	private float direction;
+	public float walkTime;
+	public int rotateTime;
+	private bool encontrado;
+
+	private Transform transformPlayer;
+
+	// float min, max;
+
+	//private int dañoProvodado = 10;
+	public bool inmune;
+
+	// Use this for initialization
+	int hashEncontrado = Animator.StringToHash ("Encontrado");
+	//int hashPerdido = Animator.StringToHash ("Perdido");
+	int hashVelocidad = Animator.StringToHash ("Velocidad");
+
+
+	void Start () {
+		//rigidoPeon = GetComponent <Rigidbody2D> ();
+		cuerpo = GetComponent <Collider2D> ();
+		cabeza = GetComponent <CircleCollider2D>();
+
+
+		sonidosPeon = GetComponent <AudioSource>();
+		thisAnimator = GetComponent <Animator>();
+		thisRigid = GetComponent <Rigidbody2D>();
+		thisSprite = GetComponent <SpriteRenderer>();
+
+		//if (GameObject.FindGameObjectWithTag ("Player").GetComponent <Rigidbody2D>() != null )
+		//{
+
+
+
+
+
+		GameObject [] objPlayer = GameObject.FindGameObjectsWithTag ("Player");
+		foreach (GameObject tar in objPlayer)
+		{
+			if (tar.GetComponent <Rigidbody2D>() != null)
+			{
+				transformPlayer = tar.GetComponent <Transform>();
+			}
+		}	
+
+		//min = -1f;
+		//max = 1f;
+
+
+
+		//ojos = this.transform.FindChild ("Mirada");
+
+		direction = -1f;
+		rotateTime = Random.Range (2, 6);
+		miraDerecha = false;
+		//lado = -1;
+		speed = 0f;
+		maxSpeed = 2f;
+		encontrado = false;
+}
+
+
+	void Update ()
+	{
+		
+		ojos = thisSprite.bounds.center;
+		ojos.y = thisSprite.bounds.center.y + 0.60f;
+
+		walkTime += Time.deltaTime;
+
+		if (walkTime >= rotateTime)
+		{
+			walkTime = 0f;
+			rotateTime = Random.Range (2, 6);
+			Gira ();
+		}
+
+		if (whatDetect.collider != null)
+		{
+			if (whatDetect.transform.GetComponentInParent <PlayerControl> () != null)
+			{//(whatDetect.transform.GetComponentInParent <PlayerControl> () != null)
+			//(whatDetect.distance < 5f)
+				encontrado = whatDetect;
+			}
+			
+			//thisAnimator.SetBool (hashEncontrado, player);
+			//thisAnimator.SetBool (hashPerdido, false);
+
+
+			//if (player.distance < 5f)
+			//{
+		}
+		else
+		{
+
+			encontrado = false;
+		
+		}
+		 
+
+
+			//velocidad = 0;
+			//thisAnimator.SetBool (hashEncontrado, encontrado);
+
+
+
+		if (speed > 0){
+			//this.transform.Translate ((lado * 3f) * Time.deltaTime,  0);;
+		}
+
+		//thisAnimator.SetBool(hashPerdido,true);
+
+	}
+
+	void FixedUpdate () 
+	{
+		/**
+		//if (!encontrado)
+		//{
+			whatDetect = Physics2D.Raycast (ojos, Vector2.right * direction, 6f , detectLayer);
+		//player = Physics2D.Raycast (ojos, Vector2.right * direction, 6f , capaPlayer);
+			Debug.DrawRay (ojos, (Vector2.right * direction) * 6f , Color.yellow);
+			Debug.DrawRay (ojos, (Vector2.right * direction) * 5f, Color.red);
+		//}
+
+
+		if (whatDetect.collider != null && encontrado)
+		{
+			Vector2 targeto = new Vector2 (whatDetect.point.x, whatDetect.point.y);
+			corre (330f);
+		
+			//this.transform.LookAt (target.position);
+		Debug.DrawRay (ojos, targeto * 6f , Color.yellow);
+		Debug.DrawRay (ojos, targeto * 5f, Color.red);
+		//Debug.Log("Estas a " + distancia.distance + "de mi");
+		}
+	
+		thisAnimator.SetFloat(hashVelocidad, Mathf.Abs( thisRigid.velocity.x));
+		thisAnimator.SetFloat("Distancia",Mathf.Abs (whatDetect.distance));
+		thisAnimator.SetFloat("Lado",direction);
+		thisAnimator.SetBool (hashEncontrado, whatDetect );
+	
+	**/
+	}
+
+
+	void OnCollisionEnter2D (Collision2D colision)
+	{
+		if (colision.gameObject.tag == "Obstaculos" ||
+			colision.gameObject.tag == "Movil" || 
+			//colision.gameObject.tag == "Player" || 
+			colision.gameObject.tag == "Proteccion")
+			//colision.gameObject.tag == "Player01")
+		{
+			StopWalk ();
+			Gira();
+		}
+
+		/**
+		if (colision.gameObject.GetComponent<PlayerControl>() != null)
+			{
+				inmune = colision.gameObject.GetComponent<PlayerControl>().inmortal;
+			if (inmune)
+			{
+				StopWalk ();
+				//speed = 0;
+				StartCoroutine (Reir());
+			}
+		}
+**/
+	}
+
+	void OnCollisionExit2D (Collision2D colision)
+	{
+		if (colision.gameObject.tag == "Obstaculos" || 
+			colision.gameObject.tag == "Movil" || 
+			//colision.gameObject.tag == "Player" || 
+			colision.gameObject.tag == "Proteccion" )
+			//colision.gameObject.tag == "Player01")
+		{
+			//if (colision.gameObject.GetComponent<PlayerControl>() != null)
+			//{
+			//	inmune = colision.gameObject.GetComponent<PlayerControl>().inmortal;
+
+			//}
+		}
+
+		if (colision.transform.tag == "Player")
+		{
+			StopWalk ();
+			StartCoroutine ( Reir ());
+				Gira();
+		}
+	}
+
+	void OnTriggerEnter2D (Collider2D otro)
+	{
+
+		if (otro.gameObject.name == "Destructor" )
+		{
+			Destroy (this.gameObject);
+			//StartCoroutine  (destruye ());
+		}
+
+		if (otro.gameObject.name == "FinDeNivel"){
+			Gira ();
+		}
+	}
+
+	void StopWalk ()
+	{
+		speed = 0f;
+		//thisRigid.velocity = 0f;
+		thisAnimator.SetFloat(hashVelocidad, speed);
+	}
+
+
+	void corre (float speed)
+	{
+		if (Mathf.Abs (thisRigid.velocity.x) <= maxSpeed)
+		{
+			thisRigid.AddForce (Vector2.right * direction * speed, ForceMode2D.Force);
+		}else{
+			Debug.Log("Igualando velocidad");
+			thisRigid.velocity = new Vector2 (direction *  maxSpeed , 0f);
+		}
+
+	}
+
+
+	void Gira ()
+	{
+
+		direction *= -1f;
+
+		//ojos *= lado;
+
+		miraDerecha = !miraDerecha;
+		thisSprite.flipX = !thisSprite.flipX;
+
+		//speed *= -1f;
+	}
+
+	public void muere(){
+		
+
+		if (this.gameObject != null){
+			thisAnimator.SetBool ("Muere", true);
+
+			cuerpo.enabled = false;
+			cabeza.enabled = false;
+			thisRigid.AddForce (Vector2.up * 5f,ForceMode2D.Impulse);
+			//rigidbody.AddForce ((- rigidbody.velocity) *5, ForceMode2D.Impulse);
+
+			if (Items.Length > 0 && maxItems == 0){
+
+
+				Instantiate (Items [Random.Range (0, Items.Length )], this.transform.position, this.transform.rotation);
+				//maxItems += 1;
+			}
+
+
+			sonidosPeon.PlayOneShot (golpeCabeza);
+
+
+			StartCoroutine (destruye ());
+
+
+		}
+
+	}
+
+	private IEnumerator Reir ()
+	{
+		thisAnimator.SetBool ("Reir", true);
+		yield return new WaitForSeconds (1.5f);
+		thisAnimator.SetBool ("Reir", false);
+	}
+
+	private IEnumerator destruye (){
+		yield return new WaitForSeconds (1);
+		thisRigid.simulated = false;
+
+		yield return new WaitForSeconds (1);
+
+		Destroy (this.gameObject);
+	}
+
+
+}
+

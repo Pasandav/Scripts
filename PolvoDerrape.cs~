@@ -1,0 +1,38 @@
+﻿using UnityEngine;
+using System.Collections;
+
+public class PolvoDerrape : MonoBehaviour {
+
+	float duracion = 0.8f;
+	Transform myTransform;
+	ParticleSystem particulas;
+	float direccion;
+	float y;
+	// Use this for initialization
+	void Start () {
+		myTransform = GetComponent <Transform>();
+		direccion = GameObject.Find("PlayerV2").GetComponent<PlayerControl>().getHorizontalMove();
+
+
+
+
+
+
+		if (direccion < 0f)
+		{
+			y += 90f;
+
+
+		}
+		else
+		{
+			y -= 90f;
+
+		}
+		myTransform.rotation = Quaternion.Euler (0,y,0); 
+
+		Destroy (gameObject, duracion);
+	}
+	
+
+}

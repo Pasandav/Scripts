@@ -1,0 +1,95 @@
+﻿using UnityEngine;
+using System.Collections;
+
+public class ControlDeCapas : MonoBehaviour {
+
+
+	private  SpriteRenderer spritePlayer;
+	private SpriteRenderer capaObstaculo;
+	private SpriteRenderer LayerObstacleVert;
+	private RaycastHit2D collisionHorizontal;
+	private RaycastHit2D collisionVertical;
+
+	private Vector3 RayStart;
+	public LayerMask whatLayer;
+	private PlayerControl scriptControlPlayer;
+
+	private float RayHorizontal;
+	private Transform chkDistanceHoriz;
+	private Transform chkDistanceVert;
+	// Use this for initialization
+
+	void Start () 
+	{
+		spritePlayer = this.transform.FindChild ("Sprite").GetComponent <SpriteRenderer>();
+		chkDistanceHoriz = this.transform.FindChild ("WallCheck").GetComponent <Transform>();
+		chkDistanceVert = this.transform.FindChild ("GroundCheck").GetComponent <Transform>();
+	}
+	
+	// Update is called once per frame
+	void FixedUpdate () 
+	{
+		
+		if (chkDistanceHoriz.position.x > spritePlayer.bounds.center.x)
+		{ 
+			RayHorizontal = 1;
+		}
+		else 
+		{ 
+			RayHorizontal = -1;
+		}
+
+		RayStart = chkDistanceHoriz.position;
+		RayStart.y -= 0.4f;
+	
+		collisionHorizontal =  Physics2D.Raycast (RayStart, (Vector2.right * RayHorizontal) * 5, whatLayer);
+		Debug.DrawRay (RayStart, (Vector2.right * RayHorizontal) * 5, Color.blue);
+		collisionVertical = Physics2D.Raycast (chkDistanceVert.position, Vector2.down * 2f, whatLayer);
+		Debug.DrawRay (chkDistanceVert.position , Vector2.down * 2f, Color.yellow);
+	}
+
+
+	void Update ()
+	{
+		if (collisionHorizontal.collider != null && collisionHorizontal.transform.GetComponent <SpriteRenderer>() != null )
+		{
+			capaObstaculo = collisionHorizontal.transform.GetComponent <SpriteRenderer>();
+
+			if (collisionHorizontal.distance < 2f)
+			{	
+				if (collisionHorizontal.transform.position.x > this.transform.position.x)
+				{
+					spritePlayer.sortingOrder = capaObstaculo.sortingOrder -1;
+				}
+				else
+				{
+					spritePlayer.sortingOrder = capaObstaculo.sortingOrder +1;
+				}
+			}
+		}
+
+		if (collisionVertical.collider != null && collisionVertical.transform.GetComponent <SpriteRenderer>() != null)
+		{
+			LayerObstacleVert = collisionVertical.transform.GetComponent <SpriteRenderer> ();
+			Vector2 topOfObstacle = LayerObstacleVert.bounds.center;
+			topOfObstacle.y = capaObstaculo.bounds.max.y;
+
+			if (this.transform.position.y > LayerObstacleVert.transform.position.y)
+			{
+				spritePlayer.sortingOrder = LayerObstacleVert.sortingOrder +1;
+			}
+		}
+	}
+
+
+	void OnCollisionEnter2D (Collision2D otro)
+	{
+	if (otro.gameObject.GetComponent <SpriteRenderer> () != null)
+		{
+			spritePlayer.sortingOrder = otro.gameObject.GetComponent <SpriteRenderer> ().sortingOrder + 1 ;
+		}
+	}
+}
+
+
+

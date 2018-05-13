@@ -1,0 +1,109 @@
+﻿using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+
+
+public class PlayerColisiones : MonoBehaviour {
+
+	// Los enemigos deben de estar en esta máscara
+	public LayerMask enemiesMask;
+
+	PlayerControl ctrlPlayer;
+
+
+	//private GameObject transformMovil = null;
+	//public GameObject [] tipoDeEnemigo;
+
+	void Start () 
+	{
+		ctrlPlayer = this.transform.GetComponent <PlayerControl> ();
+	}
+
+	void OnTriggerEnter2D (Collider2D other)
+	{
+		// SI.. el valor de layer del objeto colisionado == el valor de layer seleccionado en "enemiesMask" del inspector...
+		if ( (1 << other.gameObject.layer) == enemiesMask.value)
+		{
+
+			if (ctrlPlayer.inmortal == false && ctrlPlayer.muerto == false)
+			{
+				ctrlPlayer.rebotar ();
+
+				if (other.tag.StartsWith ("Easy"))
+				{
+					other.GetComponent <ControlEnemy_Easy>().muere();
+				}
+			}
+		}
+	}
+		
+	void OnCollisionEnter2D (Collision2D other)
+	{
+		if ((1 << other.gameObject.layer) == enemiesMask.value)
+			{
+				if (ctrlPlayer.inmortal == false && ctrlPlayer.muerto == false)
+				{
+					
+				float direction;	
+					if (other.transform.position.x > this.transform.position.x)
+					{
+						direction = -1f;
+					}
+					else
+					{
+						direction = 1f;
+					}
+
+				ctrlPlayer.setAsKnock (true);
+				ctrlPlayer.setDirection (direction);
+
+				//ctrlPlayer.Knock (500f,5f);
+					
+				Debug.Log ("RECIBE GOLPE EN DIRECCION: " +  direction);
+					
+					
+				}
+			}
+		}
+
+	void OnCollisionExit2D (Collision2D other)
+	{
+		if ( (1 << other.gameObject.layer) == enemiesMask.value)
+		{
+
+			if (ctrlPlayer.inmortal == false && ctrlPlayer.muerto == false)
+			{
+				ctrlPlayer.setAsKnock (false);
+			}
+		}
+
+	}
+	void OnCollisionStay2D (Collision2D other)
+	{
+		if ((1 << other.gameObject.layer) == enemiesMask.value)
+		{
+			if (ctrlPlayer.inmortal == false && ctrlPlayer.muerto == false)
+			{
+				float direction;	
+
+				if (other.transform.position.x > this.transform.position.x)
+				//if (other.transform.position.x > this.transform.position.x)
+				{
+					direction = -1f;
+				}
+				else 
+				{
+					direction = 1f;
+				}
+
+
+				//ctrlPlayer.Knock ( 1070f * direction);
+			}
+		}
+	}
+	
+
+
+
+
+}

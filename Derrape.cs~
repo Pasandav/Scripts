@@ -1,0 +1,17 @@
+﻿using UnityEngine;
+using System.Collections;
+
+public class Derrape : MonoBehaviour {
+
+	int duracion = 1;
+	Transform myTransform;
+
+	// Use this for initialization
+	void Start () {
+		myTransform = GetComponent <Transform>();
+			
+		Destroy (gameObject, duracion);
+	}
+	
+
+}

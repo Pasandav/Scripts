@@ -1,0 +1,120 @@
+﻿using UnityEngine;
+using System.Collections;
+
+public class PlayerLayersControl : MonoBehaviour {
+
+	//private Vector3 detectWall;
+	private  SpriteRenderer spritePlayer;
+	private SpriteRenderer capaObstaculo;
+	private SpriteRenderer LayerObstacleVert;
+
+	private RaycastHit2D collisionHorizontal;
+	private RaycastHit2D collisionVertical;
+
+	private Vector3 rayHorizontalStart;
+	private Vector3 rayVerticalStart;
+	public LayerMask whatLayer;
+	private PlayerControl scriptControlPlayer;
+
+	private float dirHorizontal;
+	//private Vector3 chkDistanceHoriz;
+	//private Transform chkDistanceVert;
+	// Use this for initialization
+
+	void Start () 
+	{
+
+		spritePlayer = this.transform.FindChild ("Sprite").GetComponent <SpriteRenderer>();
+		//chkDistanceHoriz = this.transform.FindChild ("WallCheck").GetComponent <Transform>();
+		//chkDistanceVert = this.transform.FindChild ("GroundCheck").GetComponent <Transform>();
+	}
+	
+	// Update is called once per frame
+	void FixedUpdate () 
+	{
+		//detectWall = spritePlayer.bounds.center;
+
+
+
+
+		collisionHorizontal =  Physics2D.Raycast (rayHorizontalStart, (Vector2.right * dirHorizontal) * 2, whatLayer);
+		Debug.DrawRay (rayHorizontalStart, (Vector2.right * dirHorizontal) * 2, Color.blue);
+		collisionVertical = Physics2D.Raycast (rayVerticalStart, Vector2.down * 2f, whatLayer);
+		Debug.DrawRay (rayHorizontalStart , Vector2.down * 2f, Color.yellow);
+	}
+
+
+	void Update ()
+	{
+		
+		dirHorizontal = GetComponent <PlayerControl>().getHorizontalMove();
+		rayHorizontalStart = spritePlayer.bounds.center;
+		rayHorizontalStart.y -= 0.4f;
+		rayVerticalStart.x = spritePlayer.bounds.center.x;
+		rayVerticalStart.y = spritePlayer.bounds.min.y;
+
+		if (dirHorizontal > 0f)
+		{ 
+
+			dirHorizontal = 1f;
+			rayHorizontalStart.x += 0.45f;
+
+		}
+		else 
+		{ 
+			dirHorizontal = -1f;
+			rayHorizontalStart.x -= 0.45f;
+		}
+			
+		if (collisionHorizontal.collider != null && collisionHorizontal.transform.GetComponent <SpriteRenderer>() != null )
+		{
+			capaObstaculo = collisionHorizontal.transform.GetComponent <SpriteRenderer>();
+
+			if (collisionHorizontal.distance < 2f)
+			{	
+				if (collisionHorizontal.transform.position.x > this.transform.position.x)
+				{
+					spritePlayer.sortingOrder = capaObstaculo.sortingOrder -1;
+				}
+				else
+				{
+					spritePlayer.sortingOrder = capaObstaculo.sortingOrder +1;
+				}
+			}else if (collisionHorizontal.distance <= 0f)
+			{
+				//transform.GetComponent<PlayerControl>().setIsWall (true);
+			}
+		}
+
+		if (collisionVertical.collider != null && collisionVertical.transform.GetComponent <SpriteRenderer>() != null)
+		{
+			LayerObstacleVert = collisionVertical.transform.GetComponent <SpriteRenderer> ();
+			Vector2 topOfObstacle = LayerObstacleVert.bounds.center;
+			topOfObstacle.y = capaObstaculo.bounds.max.y;
+
+			if (rayVerticalStart.y >= topOfObstacle.y)
+				//LayerObstacleVert.transform.position.y)
+			{
+				spritePlayer.sortingOrder = LayerObstacleVert.sortingOrder +1;
+			}
+		}
+	}
+
+
+	void OnCollisionEnter2D (Collision2D otro)
+	{
+	if (otro.gameObject.GetComponent <SpriteRenderer> () != null)
+		{
+			spritePlayer.sortingOrder = otro.gameObject.GetComponent <SpriteRenderer> ().sortingOrder + 1 ;
+
+		}
+	
+
+	
+	}
+
+
+}
+
+
+
