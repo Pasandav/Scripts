@@ -29,11 +29,12 @@ public class Enemy_Controller : MonoBehaviour {
 	public int maxItems = 0;
 
 	private float initialScale;
-    //public bool miraDerecha;
+
 	public float speed;
 	//public float maxSpeed;
+
     private float randomDirection;
-    private int veces = 0;
+
 
 	[Header("Min y Max tiempo andando")] 
 	[Range(1, 5)] public byte minAndando = 5;
@@ -53,12 +54,14 @@ public class Enemy_Controller : MonoBehaviour {
     private bool sentado;
     private bool girando;
 
+    [SerializeField]private bool prohibido = false;
 
 
     [Header ("Distancia para pillar")][Range (1,5)] public byte distanciaPillar;
     
 	public bool pillado;
     public bool inmortal;
+    private string capaAnterior;
 
 	// Use this for initialization
     int hashPillado = Animator.StringToHash ("Pillado");
@@ -67,7 +70,7 @@ public class Enemy_Controller : MonoBehaviour {
     int hashSentado = Animator.StringToHash("Sentado");
     int hashDistancia = Animator.StringToHash("Distancia");
     int hashDireccion = Animator.StringToHash("Direccion");
-
+	private int hashHeight = Animator.StringToHash("Height");
 
     void Start () 
     {	
@@ -94,35 +97,8 @@ public class Enemy_Controller : MonoBehaviour {
         proximoTiempoSentado = (byte)Random.Range(minSentado, maxSentado);
         actualTiempoSentado = 0;
 
-        if (GameObject.FindGameObjectWithTag ("Player") != null)
-        {
-            playerScript = GameObject.FindGameObjectWithTag("Player").GetComponentInParent<PlayerControl>();
-           
-        }
     }
 	
-	private void Update()
-	{
-		
-        if (playerScript != null)
-        {
-            if (playerScript.getIsInmortal())
-            {
-                this.gameObject.layer = 2;
-                Debug.Log("Activando");
-                //cabeza.gameObject.layer = 2;
-                //cuerpo.gameObject.layer = 2;
-            }
-            else
-            {
-                this.gameObject.layer = 15;
-                Debug.Log("Desactivando");
-                //cabeza.gameObject.layer = 15;
-                //cuerpo.gameObject.layer = 15;
-            }
-        }
-	}
-
 	void FixedUpdate () 
 	{
 		thisRigid.velocity = new Vector2(2 * randomDirection * speed, thisRigid.velocity.y);
@@ -135,31 +111,56 @@ public class Enemy_Controller : MonoBehaviour {
         CheckAndarYSentar();
         //inmortal = player.gameObject.GetComponentInParent<PlayerControl>().getIsInmortal();
 
-
+        EnviarAlAnimator();
 		
-        //thisAnimator.SetBool(hashPillado, pillado);
-        thisAnimator.SetFloat(hashVelocidad, Mathf.Abs(thisRigid.velocity.x));
-        thisAnimator.SetBool(hashSentado, sentado);
-        thisAnimator.SetFloat(hashDireccion, randomDirection);
+
 
 	}
 
+    private void EnviarAlAnimator()
+    {
+        thisAnimator.SetBool(hashPillado, pillado);
+        thisAnimator.SetFloat(hashVelocidad, Mathf.Abs(thisRigid.velocity.x));
+        thisAnimator.SetBool(hashSentado, sentado);
+        thisAnimator.SetFloat(hashDireccion, randomDirection);
+        thisAnimator.SetFloat(hashDistancia, Mathf.Abs(whatDetect.distance));
+    }
+
+    private void OnCollisionExit2D(Collision2D otro)
+    {
+        string capa = LayerMask.LayerToName(otro.gameObject.layer).ToLower();
+
+        if (capa.Contains("obstaculos") && prohibido == true)
+        {
+            prohibido = false;
+        }
+    }
+
+    private void OnCollisionStay2D(Collision2D otro)
+    {
+        string capa = LayerMask.LayerToName(otro.gameObject.layer).ToLower();
+
+        if (capa.Contains("obstaculos"))
+        {
+            prohibido = true;
+        }
+    }
 
     void OnCollisionEnter2D (Collision2D otro)
     {
         string capa = LayerMask.LayerToName (otro.gameObject.layer).ToLower();
+        string etiqueta = otro.transform.tag.ToLower();
 
-        if (
-            otro.gameObject.tag == "Movil" ||
-            otro.gameObject.tag == "Proteccion" ||
-            capa.Contains ("obstaculos"))
+        if (checks.IsWall() && !pillado && !girando && !sentado)
         {
-			if (checks.GetIsWall() && !pillado && !girando && !sentado)
-            {
-                StartCoroutine(PararYGirar());
-            }
+            StartCoroutine(PararYGirar());   
         }
-	}
+
+        if (otro.gameObject.tag.ToLower().Contains("player"))
+        {
+            
+        }
+    }
 
 
 	void OnTriggerEnter2D (Collider2D otro)
@@ -198,10 +199,8 @@ public class Enemy_Controller : MonoBehaviour {
 
         // Si el raycast devuelve un collider...
        
-		string nombreDeCapa = whatDetect.collider != null ? LayerMask.LayerToName(whatDetect.collider.gameObject.layer).ToLower() : null;
-		Debug.Log("Detectado" + nombreDeCapa);
-
-		pillado = nombreDeCapa != null && nombreDeCapa.Contains("player") && whatDetect.distance <= distanciaPillar  ? true : false;
+        string nombreDeCapa = whatDetect.collider != null ? LayerMask.LayerToName(whatDetect.collider.gameObject.layer).ToLower() : null;
+        pillado = nombreDeCapa != null && nombreDeCapa.Contains("player") && !prohibido && whatDetect.distance <= distanciaPillar  ? true : false;
 			
 		if (pillado)
 		{
@@ -209,14 +208,14 @@ public class Enemy_Controller : MonoBehaviour {
 
             if (speed <= 1) { speed += 0.4f; }
 
-            thisAnimator.SetFloat(hashDistancia, Mathf.Abs(whatDetect.distance));
+
         }
         else 
 		{ 
 			if (speed > 1) { speed -= 0.4f; }
         }
        
-		thisAnimator.SetBool(hashPillado, pillado);
+		
             
     }
 
@@ -224,7 +223,7 @@ public class Enemy_Controller : MonoBehaviour {
     void CheckAndarYSentar()
     {
         // Si NO está sentado.
-        if (!sentado && !pillado)
+        if (!sentado && !pillado && !girando)
         {
             //Si el valor entero de los segundos que lleva andando es menor que
             if (Mathf.FloorToInt(actualTiempoAndando) < maximoTiempoAndando)
@@ -234,7 +233,6 @@ public class Enemy_Controller : MonoBehaviour {
             else if (Mathf.FloorToInt(actualTiempoAndando) == maximoTiempoAndando)
             {
                 actualTiempoAndando = 0;
-                //maximoTiempoAndando = (byte)Random.Range(10, 15);
                 maximoTiempoAndando = (byte)Random.Range(minAndando, maxAndando);
                 sentado = true;
                 speed = 0f;
@@ -252,7 +250,6 @@ public class Enemy_Controller : MonoBehaviour {
             else if (Mathf.FloorToInt(actualTiempoSentado) == proximoTiempoSentado)
             {
                 actualTiempoSentado = 0;
-                //proximoTiempoSentado = (byte)Random.Range(1, 5);
                 proximoTiempoSentado = (byte)Random.Range(minSentado, maxSentado);
                 sentado = false;
                 speed = 1f;
@@ -260,23 +257,6 @@ public class Enemy_Controller : MonoBehaviour {
         }
     }
 
-    /**
-    // Metodo Pararse.
-    void Pararse()
-    {
-        speed = 0f;
-        thisAnimator.SetFloat(hashVelocidad, speed);
-    }
-	
-    // Metodo Girar.
-    void Girar ()
-	{
-            girando = true;
-            thisAnimator.SetBool(hashGira, girando);
-		Debug.Log("ME GIRO");
-	
-    }
-    **/
     //METODO PARARYGIRAR
 
     private IEnumerator PararYGirar()
@@ -293,8 +273,6 @@ public class Enemy_Controller : MonoBehaviour {
             speed = 1f;
         }
 
-
-
         Vector2 temp = this.transform.localScale;
         temp.x *= -1;
         this.transform.localScale = temp;
@@ -302,7 +280,6 @@ public class Enemy_Controller : MonoBehaviour {
         randomDirection *= -1;
         girando = false;
         thisAnimator.SetBool(hashGira, girando);
-		Debug.Log("Girando");
     }
 	
     // METODO SONIDO PISADA

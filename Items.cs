@@ -8,8 +8,8 @@ public class Items : MonoBehaviour {
 	private PlayerControl player;
 
 	void Start () {
-		player = GameObject.FindObjectOfType<PlayerControl>().GetComponent<PlayerControl>();
-		direction = player.getPlayerDirection();
+        player = GameObject.FindObjectOfType<PlayerControl>().GetComponent<PlayerControl>();
+		direction = player.GetPlayerDirection();
 
 
 		thisItem = this.GetComponent<Rigidbody2D> ();

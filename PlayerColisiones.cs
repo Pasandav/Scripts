@@ -99,7 +99,7 @@ public class PlayerColisiones : MonoBehaviour {
 
             if (tileChunk.tag.ToLower().Contains("barro"))
             {
-                ctrlPlayer.setBarro(false);
+                //ctrlPlayer.setBarro(false);
             }
 
         }
@@ -116,7 +116,7 @@ public class PlayerColisiones : MonoBehaviour {
 
             if (tileChunk.tag.ToLower().Contains("barro"))
             {
-                ctrlPlayer.setBarro(true);
+                //ctrlPlayer.setBarro(true);
             }
 
         }
@@ -150,7 +150,7 @@ public class PlayerColisiones : MonoBehaviour {
 
             if (tileChunk.tag.ToLower().Contains("barro"))
             {
-                ctrlPlayer.setBarro(true);
+                //ctrlPlayer.setBarro(true);
             }
 
         }
@@ -224,7 +224,7 @@ public class PlayerColisiones : MonoBehaviour {
 
         if (tileChunk.tag.ToLower().Contains("barro"))
         {
-            ctrlPlayer.setBarro(false);
+            //ctrlPlayer.setBarro(false);
 
         }
 

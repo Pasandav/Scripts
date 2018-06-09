@@ -2,28 +2,17 @@
 using System.Collections;
 
 
-enum mirando {izquierza = 1 , derecha = -1};
+
 
 public class PlayerControl : MonoBehaviour {
 
 	/** VARIABLES PARA CHECKEAR CONTACTO DE LOS TRANSFORM DE ESTE OBJETO.
 	 * 
 	 **/
-	//private Vector2 detectWall;     // Vector3 que almacena la posición del Transform detector de muros
-	//private bool isWall;			// Variable tipo Booleano que almacena si se está tocando muro.
-
-    private Vector2 detectGround;   // Vector3 que almacena la posición del Transform detector de suelo
-    private string typeOfGround;
-
-
+	
     private bool firstTouch;        // Variable tipo bool que almacena si acaba de tocar el suelo.
 
-    /*PRUEBA
-    */
-    //private bool groundLeft;        // Booleano que almacena si el transform groundLeft toca el suelo.
-    //private bool groundRight;       // Booleano que almacena si el transform groundLeft toca el suelo.
-
-
+  
 	[SerializeField]
 	private LayerMask layerGroundAndWalls;	// Variable que almacena los valores indicados en inspector de las capas que deben detectar las variables booleanas 'isWall' e 'isGround'.
 
@@ -33,7 +22,8 @@ public class PlayerControl : MonoBehaviour {
 	[Header ("Movimiento HORIZONTAL")]
 	[SerializeField]
 	private float horizontalDirection;		// Variable que almacena el eje horizontal x (negativo izda, positivo dcha).
-	
+    private float lastDirection;
+
     //public float forceX;				// Variable que almacena el empuje utilizado en la fuerza horizontal.
 	[Tooltip ("Velocidad horizontal")]
 	public float velocityX;				// Variable que almacena la velocidad horizontal del rigidbody
@@ -47,7 +37,7 @@ public class PlayerControl : MonoBehaviour {
 
 	private bool isSliding;				// Variable bool que indica si está derrapando.
 	private bool pushing;               // Variable bool que indica si está empujando.
-    private bool isBarro = false;
+
 
 	/** VARIABLES DE SALTO INCREMENTAL
 	 * 
@@ -58,20 +48,22 @@ public class PlayerControl : MonoBehaviour {
 	public float maxTimeJump = 0.6f;			// Máximo tiempo que registra la pulsación
 	public float minJumpForce = 7.8f;			// Fuerza minimima del salto.
 	public float incrementJumpForce = 7f;		// Incrementos que se añaden al salto hasta que llega a la fuerza máxima.
-	public float height;						// Variable que contendrá la altura del salto.
-	public float drop;							// Variable que contendra la distancia de caida (drop)
+    public float normalGravity = 9f;
+    //public float height;						// Variable que contendrá la altura del salto.
+	//public float drop;							// Variable que contendra la distancia de caida (drop)
 
 	[Header ("Variables de AGARRADO")]
     public bool isGrip = false;					// Booleano que indica si está agarrandose a un muro.
 	public float gripGravity = 2f;			// Gravedad cuando se agarra a un muro.
-    public bool lastGrip = false;
+    //public bool lastGrip = false;
 
 	[Space]
 
 	[Header ("Variables de REBOTE")]
-    public bool isBounce = false;                 // Variable booleana que indica si está rebotando.
-    public float bounceForceX;
-	public float bounceForceY;				// Booleano que indica si estamos rebotando entre paredes.
+    [SerializeField] private bool isBounce = false;
+    [SerializeField] private float bounceGravity = 2f;
+    [SerializeField] private float bounceForceX;
+    [SerializeField] private float bounceForceY;
 
 	//public bool jumping = false;
 	[Header ("Prefabs para POLVO")]
@@ -88,7 +80,12 @@ public class PlayerControl : MonoBehaviour {
 	public bool muerto = false;
 	public bool knock = false;
 	private float directionKnock = 0f;
-	private bool hidden = false;
+    private int thisLayer;
+    private int ignoreRaycastLayer;
+
+    private bool isHidden = false;
+    private string lastGround = "Vacío";
+ 
 
     /** VARIABLES QUE INSTANCIAN COMPONENTES
 	 * 
@@ -105,48 +102,35 @@ public class PlayerControl : MonoBehaviour {
 	 **/
 	// Almacenamos en variables tipo 'int' el identificador de los valores del Animator. (Más eficiente).
 	
-    //private int hashIsGround = Animator.StringToHash ("Ground");
-	private int hashIsWall = Animator.StringToHash ("Wall");
-	private int hashGrip = Animator.StringToHash ("Agarrado");
+	private int hashGrip = Animator.StringToHash ("IsGrip");
 	private int hashHorizontalX = Animator.StringToHash ("Direccion");
-	private int hashHorizontalSpeed = Animator.StringToHash ("VelocidadH");
+	
+    private int hashHorizontalSpeed = Animator.StringToHash ("VelocidadH");
 	private int hashVerticalSpeed = Animator.StringToHash ("VelocidadY");
-	private int hashHeight = Animator.StringToHash ("Altura");
     private int hashSubiendo = Animator.StringToHash("Subiendo");
     private int hashSlide = Animator.StringToHash("Derrapa");
-	private int hashDrop = Animator.StringToHash ("Caida");
 	private int hashBounce = Animator.StringToHash ("Rebotando");
 	private int hashPush = Animator.StringToHash ("Empujando");
 	private int hashKnock = Animator.StringToHash ("Golpe");
 	private int hashHidden = Animator.StringToHash ("Oculto");
     private int hashBarro = Animator.StringToHash ("Barro");
-    int hashAgachado = Animator.StringToHash("Agachado");
+    private int hashAgachado = Animator.StringToHash("Agachado");
 
 
 	private AudioSource sourceofSounds;
 	// Arrays de sonidos (Arrastras los clips desde el Inspector)
 	public AudioClip [] arrayOfSounds;
 
-	//private int llamadas;
-	
-   // public Transform gizmoWall;
-	//public Transform gizmoRight;
-	//public Transform gizmoLeft;
-
-    //private Transform gizmoCheckWall;
-
 	void Awake ()
 	{
-        /** COGEMOS COMPONENTES
-		 * 
-		 **/
-
+        // COGEMOS COMPONENTES
 
         if (this.name.ToLower().Contains("player"))
         {
             // Asignamos componente SpriteRenderer del gameobject Sprite.
             thisSprite = this.transform.Find("Sprite").GetComponentInChildren<SpriteRenderer>();
-			thisShadow = this.transform.Find("Sombra").GetComponent<SpriteRenderer>();
+            thisShadow = thisSprite.transform.Find("Sombra").GetComponentInChildren<SpriteRenderer>();
+
             
 			// Asignamos componente Animator del gameobject Sprite 		
             thisAnimator = this.transform.GetComponentInChildren <Animator>();
@@ -157,11 +141,7 @@ public class PlayerControl : MonoBehaviour {
             sourceofSounds = this.GetComponent <AudioSource>();
 
             Checks = this.GetComponent<CheckGroundAndWalls>();
-
-            
         }
-
-
 	}
 
 	void Start ()
@@ -173,16 +153,13 @@ public class PlayerControl : MonoBehaviour {
 
 		// Asignamos valor que sirve de Fuerza de empuje para el movimiento horizontal
 		maxVelocityX= 2f;		// Asignamos velocidad máxima horizontal.
-		thisRigid.gravityScale = 9f;	// Escala de gravedad.
-		//toca = 0;
-		//minJumpForce = 12f;			// Fuerza de salto mínima.
-		//incrementJumpForce = 12f; // Incrementos que se añaden a la fuerza en el salto
-
+        thisRigid.gravityScale = normalGravity;	// Escala de gravedad.
+		
 		timePressing = maxTimeJump; 
 
 		// Fuerzas x e y que se aplican al rebotar (bounce) si estamos agarrados (grip)
-		bounceForceX = 3f;
-		bounceForceY = 5f;
+		bounceForceX = 5f;
+		bounceForceY = 3f;
 
 		currentForce = 0f;
 		initialForce = 5f;
@@ -191,11 +168,24 @@ public class PlayerControl : MonoBehaviour {
 		AcelerationForce = 5f;
 		DecelerationForce = 75f;
 
+        thisLayer = thisSprite.gameObject.layer;
+
+
         thisAnimator.SetInteger(hashAgachado, 0);
 	}
-		
 
-	void Update ()
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!knock)
+        {
+            knock = LayerMask.LayerToName(collision.gameObject.layer).ToLower().Contains("enemigos") ? true : false;
+            directionKnock = collision.transform.position.x < this.transform.position.x ? 1f : -1f;
+        }
+    }
+
+
+    void Update ()
 	{
 		
 		// SI... Pulsamos la tecla de salto (Espacio)
@@ -203,8 +193,7 @@ public class PlayerControl : MonoBehaviour {
 			// Y ..SI .. estamos tocando suelo ('isGround')
             // Igualamos variable ('starJump') a true. (Comenzamos a saltar).
             // Igualamos a 0 la variable que controla el tiempo que pulsamos el salto (timePressing).
-            if (Checks.GetIsGround())
-
+            if (Checks.IsGround())
             {
 				startJump = true;
 				timePressing = 0f;
@@ -213,7 +202,7 @@ public class PlayerControl : MonoBehaviour {
             // Igualamos variable rebote ('isBounce') a true.
             // Llamamos a la corutina Bouncing.
             // Igualamos el tiempo que pulsamos el salto ('timePressing'), al máximo tiempo permitido ('maxTimeJump').
-            else if (isGrip) 
+			else if (isGrip) 
             {
                 isBounce = true;
 				StartCoroutine (Bouncing (horizontalDirection));
@@ -262,12 +251,12 @@ public class PlayerControl : MonoBehaviour {
 
         }
 
-        if (Input.GetKey (KeyCode.E) && Checks.GetIsWall())
+        if (Input.GetKey (KeyCode.E) && Checks.IsWall())
 		{
 			//pushing = true;
 		}
 
-        if (Input.GetKeyUp (KeyCode.E) && Checks.GetIsWall())
+        if (Input.GetKeyUp (KeyCode.E) && Checks.IsWall())
 		{
 			//pushing = false;
 		}
@@ -280,52 +269,40 @@ public class PlayerControl : MonoBehaviour {
 	{
         // Si no nos golpean (knock) o no rebotamos (bounce)
         // Almacena el valor del eje X al pulsar las flechas horizontales (negativo izda, positivo dcha).
-        //if (!knock)
-        detectGround.x = thisSprite.bounds.center.x;
-        detectGround.y = thisSprite.bounds.min.y;
-
-
-
-
-        if (!knock) {
+		if (!knock) {
 			horizontalDirection = Input.GetAxisRaw ("Horizontal");
 
-            //Igualamos la fuerza aplicada (currentFoce)
+            //Igualamos la fuerza horizontal que se va a aplicar dependiendo del
+            //valor absoluto de horizontal direcció
             currentForce = Mathf.Abs(horizontalDirection) > 0f ? 30f : 0f;
 
-
 			// SI... estamos tocando suelo (isGround)..
-            if (Checks.GetIsGround()) 
+            if (Checks.IsGround()) 
             {
-                
-
-
-                typeOfGround = Checks.GetTypeOfGround();
-                Debug.Log("Valor de type of ground= " + typeOfGround);
-
-                // Sino... (estamos en barro)..
-                // Igualamos la velocidad máxima del rigidbody
-                // Igualamos la fuerza minima de salto
-                if (typeOfGround.Contains("barro"))
+                if (!lastGround.Contains(Checks.GetTypeOfGround()))
                 {
-                    thisAnimator.SetBool(hashBarro, true);
-                    maxVelocity = 0.01f;
-                    minJumpForce = 1f;
-                    currentForce = 20f;
+                    lastGround = Checks.GetTypeOfGround();
+                    Debug.Log("Valor de type of ground = " + Checks.GetTypeOfGround() + " y lastGround = " + lastGround);
+                    // Sino... (estamos en barro)..
+                    // Aumentamos el "rozamiento" del rigidbody
+                    // Igualamos la fuerza minima de salto
+                    if (Checks.GetTypeOfGround().Contains("barro"))
+                    {
+                        thisAnimator.SetBool(hashBarro, true);
+                        thisRigid.drag = 40f;
+                        minJumpForce = 1f;
+                    }
+                    // Si no estamos tocando barro (!isBarro)..
+                    // Igualamos la velocidad máxima del rigidbody
+                    // Igualamos la fuerza minima de salto
+                    else
+                    {
+                        thisAnimator.SetBool(hashBarro, false);
+                        thisRigid.drag = 0f;
+                        minJumpForce = 7.8f;
+                        thisShadow.color = new Color(0f, 0f, 0f, 0.5f);
+                    }
                 }
-                // Si no estamos tocando barro (!isBarro)..
-                // Igualamos la velocidad máxima del rigidbody
-                // Igualamos la fuerza minima de salto
-
-                else
-                {
-                    maxVelocity = 2f;
-                    minJumpForce = 7.8f;
-                    thisAnimator.SetBool(hashBarro, false);
-                    thisShadow.color = new Color(0f, 0f, 0f, 0.5f);
-
-                }
-
                 //Añadimos una fuerza de: valor almacenado en: horizontalDirection (-1 o 1) * valor almacenado en currentFore * Vector2.right (1,0).
 				thisRigid.AddForce (horizontalDirection * Vector2.right * currentForce , ForceMode2D.Force);
             }
@@ -350,21 +327,16 @@ public class PlayerControl : MonoBehaviour {
         //Sino... nos están golpeando.
         //Llamamos a la funcion knock.
         else {
-			Knock (250f, 6f);
-            Debug.Log("GOLPIÑO");
-		}
+            this.thisAnimator.SetBool(hashKnock, knock);
+            Knock (1100f, directionKnock);
+            }
 		
         // Almacena el valor absoluto (positivo) de la velocidad del rigidbody.
         velocityX = Mathf.Abs(thisRigid.velocity.x);
 
         // SI.. la velocidad x del rigidbody es mayor o igual que la velocidad maxima horizontal ('maxVelocityX')
-        if (velocityX >= maxVelocityX && !isBounce)
-       // if (Mathf.Abs (thisRigid.velocity.x) >= maxVelocity && !isBounce)																		
-		{
-			// Igualamos la velocidad del rigidbody al valor de 'maxVelocityX'.
-			thisRigid.velocity = new Vector2( maxVelocity * horizontalDirection , thisRigid.velocity.y);
-		}
-
+        // Igualamos la velocidad del rigidbody al valor de 'maxVelocityX'.
+        thisRigid.velocity = velocityX >= maxVelocity && !isBounce ? new Vector2(maxVelocity * horizontalDirection, thisRigid.velocity.y) : thisRigid.velocity;
 
         /** Llama a funciones que comprueban
        * Si tocamos suelo.
@@ -372,24 +344,99 @@ public class PlayerControl : MonoBehaviour {
        * La direccion del Sprite
        * Si nos agarramos a una pared.
        **/
-        CheckGround();
-        CheckGrip();
-        Girar();
 
-
-        Jump();
-
-        // Envía los valores al Animator.
-		thisAnimator.SetFloat (hashHorizontalX, horizontalDirection);
-		thisAnimator.SetFloat(hashVerticalSpeed, thisRigid.velocity.y);
-        thisAnimator.SetFloat (hashSubiendo, thisRigid.velocity.normalized.y);
-		thisAnimator.SetFloat (hashHorizontalSpeed, velocityX);
-		thisAnimator.SetBool (hashBounce, isBounce);
-        thisAnimator.SetBool("StartJump", startJump);
+        if (isHidden) 
+        { 
+            Detectable(false); 
+        }
        
+      
+
+        CheckGround();
+        Jump();
+        Girar();
+        SendToAnimator();
 	}
 
-	/** FUNCION JUMP ( SALTO INCREMENTAL ).
+    void SendToAnimator()
+    {
+        // Envía los valores al Animator.
+        thisAnimator.SetFloat(hashHorizontalX, horizontalDirection);
+        thisAnimator.SetFloat(hashVerticalSpeed, thisRigid.velocity.y);
+        thisAnimator.SetFloat(hashSubiendo, thisRigid.velocity.normalized.y);
+        thisAnimator.SetFloat(hashHorizontalSpeed, velocityX);
+        thisAnimator.SetBool(hashBounce, isBounce);
+        thisAnimator.SetBool("StartJump", startJump); 
+        // Enviamos el valor de grip al ANIMATOR.
+        thisAnimator.SetBool(hashGrip, isGrip);
+        thisAnimator.SetBool(hashKnock, knock);
+
+    }
+	
+    /** FUNCION CHECKEA SI SE ESTA TOCANDO SUELO.
+    * 
+    ***/
+    void CheckGround()
+    {
+        // SI... TOCA SUELO (isGround)..
+        if (Checks.IsGround())
+        {
+            // SI... no es el primer toque de suelo (llega de un salto)
+            if (!firstTouch) { FirstTouch(); }
+        }
+        // SINO TOCA SUELO... isGround = false, (Aún está en el aire)
+        else
+        {
+            firstTouch = false;
+            Debug.DrawRay(Checks.CheckGroundPosition(), Vector2.down * Checks.HeightToGround);
+            CheckGrip();
+        }
+    }
+
+    // Funcion que Iguala los valores cuando toca suelo por primera vez después de un salto.
+    private void FirstTouch()
+    {
+        firstTouch = true;
+        isGrip = false;
+        isBounce = false;
+
+        Checks.HeightToGround = 0f;
+        Checks.Drop = 0f;
+        currentForce = 0f;
+
+        Instantiate(dustJump, Checks.CheckGroundPosition(), dustJump.transform.rotation);
+        sourceofSounds.PlayOneShot(arrayOfSounds[0], 0.3f);
+
+        thisRigid.gravityScale = normalGravity;
+        thisRigid.velocity = new Vector2(0f, 0f);
+    }
+
+    // FUNCION CHECKGRIP (Chequea si se está agarrando a una pared).
+    void CheckGrip()
+    {
+        // SI... NO estamos tocando suelo y estamos tocando un muro
+        if (Checks.IsWall())
+        {
+            // SI... la dirección es igual a la escala del transform y está callendo.
+            if (horizontalDirection > 0f && this.transform.localScale.x > 0 && thisRigid.velocity.y < 0f ||
+                horizontalDirection < 0f && this.transform.localScale.x < 0 && thisRigid.velocity.y < 0f)
+            {
+                isGrip = true;
+                thisSprite.flipX = true;
+                thisRigid.gravityScale = gripGravity;
+                StartCoroutine(DustGrip(Checks.CheckWallPosition()));
+            }
+            else
+            {
+                // NO se está agarrando (isGrip)...
+                // Se iguala la gravedad del rigidbody en función de si se está rebotando (isBounce)
+                isGrip = false;
+                thisRigid.gravityScale = isBounce ? bounceGravity : normalGravity;
+            }
+        }
+    }
+
+    /** FUNCION JUMP ( SALTO INCREMENTAL ).
 	 * 
 	 **/
 	void Jump ()
@@ -401,14 +448,8 @@ public class PlayerControl : MonoBehaviour {
 		**/
 		if (startJump && !isBounce && !isGrip)
         {
-            
-            thisRigid.AddForce(minJumpForce * Vector2.up, ForceMode2D.Impulse);
-            //StartCoroutine(StartJump(0.2f));
-
+            thisRigid.AddForce(minJumpForce * Vector2.up, ForceMode2D.Impulse);         
             startJump = false;
-
-
-
             // SI.. el tiempo presionando (timePressing) es menor que el maximo tiempo de salto (MaxTimeJump).
             if (timePressing < maxTimeJump && !isGrip && !isBounce)
             {
@@ -428,15 +469,15 @@ public class PlayerControl : MonoBehaviour {
 	*/
 	IEnumerator Bouncing (float direction)
 	{
-		thisRigid.gravityScale = 0.2f;
-        thisRigid.mass = 0.7f;
+        thisRigid.gravityScale = bounceGravity;
+      
 		thisRigid.AddForce (new Vector2 (-direction * bounceForceX, bounceForceY), ForceMode2D.Impulse);	
-		
-        yield return new WaitForSeconds (0.8f);
+        sourceofSounds.PlayOneShot(arrayOfSounds[1], 1f);
+
+        yield return new WaitForSeconds (0.5f);
 	    
         isBounce = false;
-        thisRigid.gravityScale = 9f;
-        thisRigid.mass = 0.7f;
+        thisRigid.gravityScale = normalGravity;
 	}
 
 
@@ -445,13 +486,12 @@ public class PlayerControl : MonoBehaviour {
 	 **/
  	void Girar()
 	{
-       
         // Almacenamos la escala local del transform en variable tipo Vector2
         Vector2 temp = this.transform.localScale;
       
 			if (horizontalDirection * velocityX > 0 && this.transform.localScale.x < 0 ||
 				horizontalDirection * velocityX < 0 && this.transform.localScale.x > 0 ||
-			    Checks.GetIsGround() && thisSprite.flipX == true)
+			    Checks.IsGround() && thisSprite.flipX == true)
 			{
 				temp.x *= -1f;
 			    thisSprite.flipX = false;
@@ -459,131 +499,12 @@ public class PlayerControl : MonoBehaviour {
             
         this.transform.localScale = temp;
 	}
-
 	
-   
-	/** FUNCION CHECKGRIP (Chequea si se está agarrando a una pared).
-	 * 
-	 **/
-	
-    void CheckGrip ()
-	{
-		// SI... Estamos tocando un muro (isWall).... y NO estamos tocando suelo.
-		if (Checks.GetIsWall() && !Checks.GetIsGround()) 
-		{
-			// SI... el sprite NO está girado (mira a la derecha).
-			// Y...  El movimiento horizontal (horizontalMove) es igual a 1 (derecha).
-			// Y...  La altura (height) < 0 (está cayendo)
-
-			if (horizontalDirection > 0f && this.transform.localScale.x > 0 ||
-			    horizontalDirection < 0f && this.transform.localScale.x < 0)
-			{
-				isGrip = true;
-				thisSprite.flipX = true;
-			}
-			else
-			{
-				isGrip = false;
-			}
-        }
-		else 
-		{
-			isGrip = false;   
-		}
-
-		
-        if (isGrip)
-		{
-            // Bajamos la gravedad del rigid al valor de gripGravity.
-            // Ejecutamos la corrutina que Instancia el polvo de agarre.
-
-            //thisSprite.flipX=true;
-			if (thisRigid.velocity.y < 0)
-			{
-				thisRigid.gravityScale = gripGravity;
-			}
-
-            StartCoroutine(dustGrip(Checks.PositionOfCheckWall()));
-
-		}
-		
-		// Enviamos el valor de grip al ANIMATOR.
-		thisAnimator.SetBool (hashGrip, isGrip);											
-	}
-		
-
-	/** FUNCION CHECKEA SI SE ESTA TOCANDO SUELO.
-	* 
-	***/
-    void CheckGround ()
-    {
-      
-		// SI... TOCA SUELO (isGround)..
-        if (Checks.GetIsGround())
-		{
-			isBounce = false;
-           
-           
-			// SI... no es el primer toque de suelo (llega de un salto)
-
-			if (!firstTouch)
-			{	
-				// Instanciamos el gameobject que genera particulas de polvo al tocar el suelo en la posición y rotación del transform chkGround. 
-				// Asigna a firstTouch a true
-				// Reproduce el sonido guardado en el array de sonidos a un volumen igual que 'drop' (caida) / 0.5
-				// Reinicia a 0 la variable drop (caida), 
-				// Almacena la posicion Y del rigidBody cuando llega de un salto.
-				
-				height = 0f;
-				drop = 0f;
-				isGrip = false;
-				isBounce = false;
-                Instantiate(dustJump, detectGround, dustJump.transform.rotation);
-
-				firstTouch = true;
-				sourceofSounds.PlayOneShot (arrayOfSounds[0], 0.3f );
-				thisRigid.gravityScale = 9f;
-
-                thisRigid.velocity  = new Vector2 (0f,0f);
-				currentForce = 0;
-			}
-		}
-		// SINO TOCA SUELO... isGround = false, (Aún está en el aire)
-		else
-		{
-			// No ha tocado el suelo (firstTouch = false).
-
-			//isGround= false;
-			firstTouch = false;
-
-            /** DETECCION DE LA ALTURA Y CAIDA DEL RIGIDBODY
-            * Almacena en 'height' la distancia devuelta por raycast2D de la posición del transform (chkGround), apuntando abajo.
-            **/
-            height = Physics2D.Raycast(detectGround, Vector2.down, 100f).distance;
-            Debug.DrawRay(detectGround, Vector2.down*100f);
-        }	
-
-		// Si el valor absoluto de la altura mayor que 0f Y.. drop (caida) es menor que valor absoluto de la altura..
-			if (Mathf.Abs(height) > 0f && drop < Mathf.Abs(height)) 
-			{ 
-				// Igualamos drop (caida), a el valor absoluto de altura (redondeando sin decimal para que funcione el sonido de caida)
-				drop = Mathf.Abs(Mathf.Round (height * 1f) / 1f); 
-			} 
-		// Enviamos los valores al Animator.
-		//thisAnimator.SetBool (hashIsGround, isGround);
-		thisAnimator.SetFloat (hashHeight, height);
-		thisAnimator.SetFloat (hashDrop, drop);
-		//thisAnimator.SetBool("pieIzdo",groundLeft);
-		//thisAnimator.SetBool("pieDcho",groundRight);
-		//thisAnimator.SetInteger ("Tocando",toca);
-
-	}
-
-	/**
+    /**
 	 * Instancia el prefab almacenado en prefabDustGrip, en la posición indicada en posCheckWall
 	 **/
 
-	IEnumerator dustGrip (Vector3 posCheckWall)
+    IEnumerator DustGrip (Vector3 posCheckWall)
 	{
 		posCheckWall.y += 0.65f;
 		posCheckWall.x += 0.1f;
@@ -592,19 +513,9 @@ public class PlayerControl : MonoBehaviour {
 	}
 
 
-    // PAUSA ANTES DE SALTO //
-    IEnumerator StartJump (float seconds)
-    {
-        
-        yield return new WaitForSeconds(seconds);
 
-       
+   
 
-        //sourceofSounds.PlayOneShot (arrayOfSounds[1] , 1f);
-
-    }
-
-	
     public void rebotar ()
 	{
 		thisRigid.AddForce  (new Vector2 (thisRigid.velocity.x, 800f) , ForceMode2D.Force);
@@ -615,42 +526,48 @@ public class PlayerControl : MonoBehaviour {
 	/** FUNCION KNOCK (RECIBE UN GOLPE)
 	 * 
 	 **/
-	public void Knock (float force, float alt)
+	public void Knock (float force, float dir)
 	{
-		
-		//thisAnimator.SetBool (hashKnock , knock);
+        
 
-			//thisRigid.velocity = Vector2.zero;
-	
-		thisRigid.AddForce (new Vector2 (force * directionKnock, alt), ForceMode2D.Force);
+        thisRigid.AddForce(new Vector2(force * dir, 0f), ForceMode2D.Impulse);
+        if (!inmortal)
+        {
+            
+            sourceofSounds.PlayOneShot(arrayOfSounds[2], 1f);
+            Detectable(false);
+          
+            StartCoroutine(recibeDaño());
 
+        }
 
-		StartCoroutine (recibeDaño ());
-			
 
 	}
 
 
 	public IEnumerator recibeDaño ()
 	{
-		if (!muerto)
+        if (!muerto)
 		{
-			sourceofSounds.PlayOneShot(arrayOfSounds [2], 1f);
+			
             //yield return new WaitForSeconds(1f);
+            //int temp = thisSprite.gameObject.layer;
 
-            Debug.Log("golpazo");
 
 			inmortal = true;
-			StartCoroutine (Inmortal ());
-			yield return new WaitForSeconds (0.5f);
-			knock = false;
+
+            //this.gameObject.layer = 2;
+
+            StartCoroutine (Parpadea (0.2f));
+			
+            yield return new WaitForSeconds (0.5f);
+            knock = false;
 			thisAnimator.SetBool (hashKnock,knock);
 
 			yield return new WaitForSeconds (inmortalTime);
-			//knock = false;
+			
 			inmortal = false;
-
-
+            Detectable(true);
 		}
 		else
 		{
@@ -662,18 +579,21 @@ public class PlayerControl : MonoBehaviour {
 	/** FUNCION Inmortal
 	 * 
 	 **/
-	public IEnumerator Inmortal()
+	private IEnumerator Parpadea(float time)
 	{
 		while (inmortal)
 		{
 			thisSprite.color= new Color(1f,1f,1f,0.1f);
-			yield return new WaitForSeconds (0.05f);
+			yield return new WaitForSeconds (time);
 			thisSprite.color= new Color(1f,1f,1f,1f);
-			yield return new WaitForSeconds (0.05f);
-
-
+			yield return new WaitForSeconds (time);
 		}
 	}
+
+    private void Detectable (bool detect)
+    {
+        thisSprite.gameObject.layer = detect ? thisLayer : 2;
+    } 
 
 
     /**
@@ -734,16 +654,8 @@ public class PlayerControl : MonoBehaviour {
 
     // Getter y Setters ( para Cambiar o consultar valores de variables privadas desde otros Scripts).
     //public float getPlayerDirection () { return horizontalDirection; }
-    public float GetDirection() { return horizontalDirection; }
 
-	public float getPlayerDirection ()
-	{
-		if (thisSprite.flipX == true) {
-			return -1f;
-		} else {
-			return 1f;
-		}
-	}
+    public float GetPlayerDirection () { return  thisSprite.flipX ? -1f : 1f; }
 
 	public bool getPushing () { return this.pushing ;}
 	public void setPushing (bool isPush) 
@@ -752,20 +664,8 @@ public class PlayerControl : MonoBehaviour {
 		thisAnimator.SetBool(hashPush,this.pushing);
 	}
 
-	//public bool getIsGround () { return this.isGround;}
 
-    /**
-	public void setIsGround (bool isGround) 
-	{ 
-		this.isGround = isGround;
-		thisAnimator.SetBool(hashIsGround,isGround);
-	}
-	**/
-
-	//public void setIsWall (bool isWall) { this.isWall = isWall;}
-	//public bool getIsWall () { return isWall; }
-
-	public void setIsGrip (bool isGrip) { this.isGrip = isGrip;}
+	//public void setIsGrip (bool isGrip) { this.isGrip = isGrip;}
 	public bool getIsGrip () { return this.isGrip; }
 
     public bool getIsInmortal() { return this.inmortal; }
@@ -783,21 +683,19 @@ public class PlayerControl : MonoBehaviour {
 		directionKnock = direction; 
 	}
 
-	public void setHidden (bool hidden)
-	{
-		this.hidden = hidden;
-		thisAnimator.SetBool (hashHidden, hidden);
-	}
+    public bool IsHidden
+    {
+        set  
+        { 
+            this.isHidden = value;
+            thisAnimator.SetBool(hashHidden, value);
+        }
 
-	public bool getHidden ()
-	{
-		return hidden;
-	}
-
-    public void setBarro (bool barro){
-        thisAnimator.SetBool (hashBarro,barro);
-        isBarro = barro;
+        get { return this.isHidden; }
     }
+
+
+  
 }
 
 

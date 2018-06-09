@@ -156,7 +156,7 @@ public class Movil : MonoBehaviour {
 
 	void OnCollisionStay2D (Collision2D other)
 	{
-        if (other.transform.tag == "Player" && Checks.GetIsWall())
+        if (other.transform.tag == "Player" && Checks.IsWall())
 		{
 			if (ctrlPlayer.getPushing() == false)
 			{

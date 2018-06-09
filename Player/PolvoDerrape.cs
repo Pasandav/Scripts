@@ -11,7 +11,7 @@ public class PolvoDerrape : MonoBehaviour {
 	void Start () 
 	{
 		thisTransform = GetComponent <Transform> ();
-		direccion = GetComponent <PlayerControl> ().getPlayerDirection();
+		direccion = GetComponent <PlayerControl> ().GetPlayerDirection();
 
 		if (direccion < 0f)
 		{
