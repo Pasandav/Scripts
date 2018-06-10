@@ -100,37 +100,7 @@ public class Translucido : MonoBehaviour {
         }	
 	}
 
-    void AddSpriteInnerList (SpriteRenderer otro)
-    {
-        bool existe = false;
-        foreach (DatosSprite actual in ListaDeSprites)
-        {
-            existe = actual.nombre != otro.transform.parent.name ? false : true;
-        }
-
-        if (!existe) 
-        {
-            DatosSprite tmpSprite = new DatosSprite();
-            tmpSprite.nombre = otro.transform.parent.name;
-            tmpSprite.orden = otro.sortingOrder;
-            tmpSprite.color = otro.color;
-
-            ListaDeSprites.Add(tmpSprite);
-        }
-    }
-
-    // Borra de la lista los datos (nombre,orden y color), del sprite que estaba dentro del objeto translucido.
-    void DeleteSpriteInnerList (SpriteRenderer innerSprite)
-    {
-        for (int a = 0; a < ListaDeSprites.Count; ++a)
-        {
-            if ( ListaDeSprites[a].nombre == innerSprite.transform.parent.name)
-            {
-                ListaDeSprites.RemoveAt(a);
-                break;
-            }
-        }
-    }
+   
 
 	void GetSpritesWithTranslucent ()
 	{
@@ -192,14 +162,45 @@ public class Translucido : MonoBehaviour {
         isTranslucent = false;
 	}
 
+    void AddSpriteInnerList(SpriteRenderer otro)
+    {
+        bool existe = false;
+        foreach (DatosSprite actual in ListaDeSprites)
+        {
+            existe = actual.nombre != otro.transform.parent.name ? false : true;
+        }
 
+        if (!existe)
+        {
+            DatosSprite tmpSprite = new DatosSprite();
+            tmpSprite.nombre = otro.transform.parent.name;
+            tmpSprite.orden = otro.sortingOrder;
+            tmpSprite.color = otro.color;
+
+            ListaDeSprites.Add(tmpSprite);
+        }
+    }
+
+    // Borra de la lista los datos (nombre,orden y color), del sprite que estaba dentro del objeto translucido.
+    void DeleteSpriteInnerList(SpriteRenderer innerSprite)
+    {
+        for (int a = 0; a < ListaDeSprites.Count; ++a)
+        {
+            if (ListaDeSprites[a].nombre == innerSprite.transform.parent.name)
+            {
+                ListaDeSprites.RemoveAt(a);
+                break;
+            }
+        }
+    }
+
+    // Recibe un SpriteRender y recorre la lista de sprites que están dentro del objeto translucido.
+    // Si coinciden en el nombre: Cambia el color y el sortingOrder de SpriteRender recibido por el de la ListaDeSprites
     void RestoreShadowSprite (SpriteRenderer other)
     {
         // Recorre la lista con los datos del sprite que está dentro
         for (int a = 0; a < ListaDeSprites.Count; ++a)
         {
-            //Si el nombre de la lista coincide con el nombre del spriteRender
-            //Le asigna el color y el OrderInLayer guardado en la lista
             if (ListaDeSprites[a].nombre == other.transform.parent.name)
             {
                 other.color = ListaDeSprites[a].color;
@@ -209,8 +210,8 @@ public class Translucido : MonoBehaviour {
         }
     }
 
-    //Método que recibe un SpriteRender y le cambia el color y el sortinOrder más alto
-    //de la lista SpriteTranslucentList.
+    //Método que recibe un SpriteRender y le cambia: El sortinOrder más alto de la lista SpriteTranslucentList
+    // y el color.
     void ChangeToShadowSprite(SpriteRenderer other)
     {
         other.sortingOrder = higherOrderTranslucent + 1;
@@ -218,7 +219,7 @@ public class Translucido : MonoBehaviour {
     }
 }
 
-//Clase para crear un tipo en la lista de Sprites dentro del objeto translúcido.
+//Clase para instanciar un <tipo>, basado en la lista de Sprites que está dentro del objeto translúcido (TranslucentList).
 
 public  class DatosSprite
 {
