@@ -10,8 +10,8 @@ public class Translucido : MonoBehaviour {
     private List <DatosSprite> ListaDeSprites = new List<DatosSprite>();
 
  
-    public int higherOrderTranslucent = 0;
-    public string lastCollisionName = "";
+    private int higherOrderTranslucent = 0;
+    private string lastCollisionName = "";
 
     public bool isTranslucent = false;
 
@@ -24,60 +24,56 @@ public class Translucido : MonoBehaviour {
     [SerializeField]
     private string tagForTranslucent = "translucent";
 
-
+    //Método cuando el collider entra en éste objeto.
     private void OnTriggerEnter2D (Collider2D other)
 	{
+        //Llama al método que crea una lista de SpriteRenders de éste objeto.
         GetSpritesWithTranslucent();
 
-        // Si el Collider2d (other) tiene el componente PlayerControl (!=null)
-        //if(other.name.ToLower().Contains("player"))
+        // Si el Collider2d recibido (other), tiene el componente PlayerControl (!=null)
         if (other.GetComponentInParent<PlayerControl>() != null)
         {
             //Se iguala la variable hidden a false (ya no está oculto).
             other.GetComponentInParent<PlayerControl>().IsHidden = true;
-
-
+            //Se llama al método para cambiar la trasparencia de este gameobject
+            //Se iguala la variable isTranslucent a true (está translúcido).
             ChangeTranslucency();
             isTranslucent = true;
         }
         else if (other.transform.parent.name != lastCollisionName && !isTranslucent)
-        //else if (other.GetComponent<SpriteRenderer>().name != lastCollisionName && isTranslucent == false)
         {
+            //Se añade a la lista de sprites ques están dentro de éste objeto.
             AddSpriteInnerList (other.GetComponent<SpriteRenderer>());
 
+            //Se iguala la variable con el nombre del último objeto que ha entrado para que no colisione otra vez el mismo
             lastCollisionName = other.transform.parent.name;
-            //lastCollisionName = other.GetComponent<SpriteRenderer>().name;
-            //initialOrderInLayer = other.GetComponent<SpriteRenderer>().sortingOrder;
-            //initialColor = other.GetComponent<SpriteRenderer>().color;
 
+            //LLama al metodo que cambia el color y sortingOrder del spriteRender que envía.
             ChangeToShadowSprite(other.GetComponent<SpriteRenderer>());
-
         }
 	}
 
-	private void OnTriggerExit2D (Collider2D other)
+	// Método cuando el collider sale de éste objeto.
+    private void OnTriggerExit2D (Collider2D other)
 	{
 		// Si el Collider2d (other) tiene el componente PlayerControl (!=null)
         if (other.GetComponentInParent<PlayerControl>() != null){
 
 			//Se iguala la variable hidden a false (ya no está oculto).
-            //other.GetComponentInParent<PlayerControl>().setHidden(false);
             other.GetComponentInParent<PlayerControl>().IsHidden = false;
 
+            //LLama al método que restaura la transparencia de este objeto.
             RestoreTranslucency();
-           
 		}
         else
         {
-            
+            //LLama al método que restaura el color y sortingOrder del spriteRender que acaba de salir.
             RestoreShadowSprite (other.GetComponent<SpriteRenderer>());
-            //DeleteSpriteInnerList(other.GetComponent<SpriteRenderer>());
         }
-       
-
     }
 
-	void OnTriggerStay2D (Collider2D other)
+	//Método cuando el collider está dentro de este objeto.
+    void OnTriggerStay2D (Collider2D other)
 	{
         if (other.GetComponentInParent<PlayerControl>() != null)
         {
