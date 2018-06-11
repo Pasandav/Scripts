@@ -13,7 +13,7 @@ public class Translucido : MonoBehaviour {
     private int higherOrderTranslucent = 0;
     private string lastCollisionName = "";
 
-    private bool isTranslucent = false;
+    public bool isTranslucent = false;
 
     [Range(0f,1f)]
 	[Tooltip ("Cantidad de transparencia aplicada al SpriteRender")]
@@ -30,7 +30,7 @@ public class Translucido : MonoBehaviour {
         //Llama al método que crea una lista de SpriteRenders que contienen el tag indicado, en éste objeto.
         GetSpritesWithTranslucent();
         //Llama al método para coger el mayor SortingOrder de las lista de sprites translúcidos.
-        GetHigherOrderInLayer(spriteTranslucentList);
+        //GetHigherOrderInLayer(spriteTranslucentList);
 
         // Si el Collider2d recibido (other), tiene el componente PlayerControl (!=null)
         if (other.GetComponentInParent<PlayerControl>() != null)
@@ -41,17 +41,6 @@ public class Translucido : MonoBehaviour {
             //Se iguala la variable isTranslucent a true (está translúcido).
             ChangeTranslucency();
             isTranslucent = true;
-        }
-        else if (other.transform.parent.name != lastCollisionName && !isTranslucent)
-        {
-            //Se añade a la lista de sprites ques están dentro de éste objeto.
-            AddSpriteInnerList (other.GetComponent<SpriteRenderer>());
-
-            //Se iguala la variable con el nombre del último objeto que ha entrado para que no colisione otra vez el mismo
-            lastCollisionName = other.transform.parent.name;
-
-            //LLama al metodo que cambia el color y sortingOrder del spriteRender que envía.
-            ChangeToShadowSprite(other.GetComponent<SpriteRenderer>());
         }
 	}
 
@@ -65,13 +54,9 @@ public class Translucido : MonoBehaviour {
             other.GetComponentInParent<PlayerControl>().IsHidden = false;
 
             //LLama al método que restaura la transparencia de este objeto.
-            RestoreTranslucency();
+            RestoreTranslucency();    
 		}
-        else
-        {
-            //LLama al método que restaura el color y sortingOrder del spriteRender que acaba de salir.
-            RestoreShadowSprite (other.GetComponent<SpriteRenderer>());
-        }
+       
     }
 
 	//Método cuando el collider está dentro de este objeto.
@@ -79,28 +64,9 @@ public class Translucido : MonoBehaviour {
 	{
         //Si el collider tiene el componente PlayerControl y éste objeto no está translucido.
         //Llama al método para que cambie la transparencia de éste objeto.
-        if (other.GetComponentInParent<PlayerControl>() != null)
+        if (other.GetComponentInParent<PlayerControl>() != null && !isTranslucent)
         {
-            if (!isTranslucent)
-            {
-                ChangeTranslucency();  
-            }
-        }
-        else
-        {
-            //Si éste objeto está translúcido. Restaura el color del SpriteRender que está dentro.
-            if (isTranslucent)
-            {
-                RestoreShadowSprite(other.GetComponent<SpriteRenderer>());
-            }
-            //Sino está translucido. 
-            else
-            {
-                //Llama al método que coge el mayor sortingOrden de los SpriteRenders de éste objeto
-                GetHigherOrderInLayer(spriteTranslucentList);
-                //Llama al método que cambia el color y sortingOrder que está dentro de éste objeto
-                ChangeToShadowSprite(other.GetComponent<SpriteRenderer>());
-            }
+                ChangeTranslucency();
         }	
 	}
 
@@ -130,13 +96,19 @@ public class Translucido : MonoBehaviour {
 
     //Método que Recorre la lista de SpriteRenders de éste objeto con el tag translucent 
     //e iguala la variable higherOrderTranslucent con el sortinOrder más alto encontrado en la lista.
-    private void GetHigherOrderInLayer (List <SpriteRenderer> translucentSprites)    
+    //public int GetHigherOrderInLayer (List <SpriteRenderer> translucentSprites)    
+    public int HigherOrderInLayer
     {
-        higherOrderTranslucent = 0;
-
-        foreach (SpriteRenderer actualSprite in translucentSprites)
+        get
         {
-            higherOrderTranslucent = higherOrderTranslucent < actualSprite.sortingOrder ? actualSprite.sortingOrder  : higherOrderTranslucent;
+            higherOrderTranslucent = 0;
+            GetSpritesWithTranslucent();
+
+            foreach (SpriteRenderer actualSprite in spriteTranslucentList)
+            {
+                higherOrderTranslucent = higherOrderTranslucent < actualSprite.sortingOrder ? actualSprite.sortingOrder : higherOrderTranslucent;
+            }
+            return higherOrderTranslucent;
         }
     }
 	
@@ -222,7 +194,19 @@ public class Translucido : MonoBehaviour {
         other.sortingOrder = higherOrderTranslucent + 1;
         other.color = new Color(0f, 0f, 0f, 0.2f);
     }
+
+    public bool IsTranslucent
+    {
+        get { return isTranslucent; }
+    }
+
+    public string TagTranslucent
+
+    {
+        get { return tagForTranslucent; }
+    }
 }
+
 
 //Clase para instanciar un <tipo>, basado en la lista de Sprites que está dentro del objeto translúcido (TranslucentList).
 

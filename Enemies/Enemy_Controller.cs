@@ -10,7 +10,11 @@ public class Enemy_Controller : MonoBehaviour {
    
 	Animator thisAnimator;
 	Rigidbody2D thisRigid;
+
     SpriteRenderer thisSprite;
+    public Color initialColor = new Color(1f, 1f, 1f, 1f);
+    private Color shadowColor = new Color(0f, 0f, 0f, 0.3f);
+    public int initialOrder;
 
     CheckGroundAndWalls checks;
 
@@ -31,7 +35,8 @@ public class Enemy_Controller : MonoBehaviour {
 	private float initialScale;
 
 	public float speed;
-	//public float maxSpeed;
+
+
 
     private float randomDirection;
 
@@ -84,7 +89,8 @@ public class Enemy_Controller : MonoBehaviour {
 		checks = this.GetComponent <CheckGroundAndWalls>();
 
 		initialScale = this.transform.localScale.x;
-        
+        initialOrder = thisSprite.sortingOrder;
+
 		GenerarDireccion();
         
 		speed = 1f;
@@ -149,7 +155,8 @@ public class Enemy_Controller : MonoBehaviour {
     void OnCollisionEnter2D (Collision2D otro)
     {
         string capa = LayerMask.LayerToName (otro.gameObject.layer).ToLower();
-        string etiqueta = otro.transform.tag.ToLower();
+        string etiqueta = otro.transform.gameObject.tag.ToLower();
+
 
         if (checks.IsWall() && !pillado && !girando && !sentado)
         {
@@ -162,11 +169,35 @@ public class Enemy_Controller : MonoBehaviour {
         }
     }
 
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        thisSprite.sortingOrder = initialOrder;
+        thisSprite.color = initialColor;
+    }
 
-	void OnTriggerEnter2D (Collider2D otro)
+    private void OnTriggerStay2D(Collider2D otro)
+    {
+        if (otro.gameObject.GetComponent<Translucido>() != null)
+        {
+            Translucido objTrans = otro.gameObject.GetComponent<Translucido>();
+
+            thisSprite.sortingOrder = objTrans.IsTranslucent ? initialOrder : objTrans.HigherOrderInLayer + 1;
+            thisSprite.color = objTrans.IsTranslucent ? initialColor : shadowColor;
+        }  
+    }
+
+    void OnTriggerEnter2D (Collider2D otro)
 	{
+        if (otro.gameObject.GetComponent<Translucido>() != null)
+        {
+            Translucido objTrans = otro.gameObject.GetComponent<Translucido>();
 
-		if (otro.gameObject.name == "Destructor" )
+            thisSprite.sortingOrder = objTrans.IsTranslucent ? initialOrder : objTrans.HigherOrderInLayer + 1;
+            thisSprite.color = objTrans.IsTranslucent ? initialColor : shadowColor;
+        }
+
+		
+        if (otro.gameObject.name == "Destructor" )
 		{
 			Destroy (this.gameObject);
 			//StartCoroutine  (destruye ());
